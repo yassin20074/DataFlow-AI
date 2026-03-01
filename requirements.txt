@@ -1,10 +1,26 @@
-# requirements.txt - DataFlow AI
+# ==========================
+# DataFlow AI - Requirements
+# ==========================
 
-fastapi==0.101.1           # For building API endpoints
-uvicorn[standard]==0.23.1  # ASGI server for FastAPI
-pandas==2.1.1              # Data manipulation
-numpy==1.27.4              # Numerical computations
-scikit-learn==1.3.1        # ML models, scaling, encoding, metrics
-joblib==1.3.2              # Save/load models, scalers and encoding 
-python-multipart==1.0.0    # For file uploads in FastAPI
-pydantic==2.5.1            # Data validation for FastAPI
+# API & Server
+fastapi==0.101.1
+uvicorn[standard]==0.23.1
+python-multipart==1.0.0
+pydantic==2.5.1
+
+# Data Processing & ML
+pandas==2.1.1
+numpy==1.27.4
+scikit-learn==1.3.1
+joblib==1.3.2
+
+# NLP / Text Features
+scikit-learn==1.3.1        # TF-IDF vectorizer, encoding
+
+# Monitoring & Drift Detection
+evidently==1.2.0           # For Data Drift monitoring
+
+# Email / Alerts
+email-validator==2.1.1     # Ensure valid email addresses
+
+
