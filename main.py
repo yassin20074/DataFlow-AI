@@ -1,54 +1,50 @@
-# Retrieve the required libraries 
+#Retrieve the required libraries 
 from fastapi import FastAPI, UploadFile, File
 import pandas as pd
-import numpy as np
-import joblib
 from io import StringIO
+import joblib
+from preprocessing import preprocess
+from monitoring import log_request, log_prediction, detect_drift, send_email_alert
 
-# Load pre-trained model and transformers
-model = joblib.load("random_forest_model.pkl")
-scaler = joblib.load("scaler.pkl")
-cat_encoder = joblib.load("category_feature_encoder.pkl")
-tfidf_vectorizer = joblib.load("tfidf_vectorizer.pkl")
+# Load model and transformers
+model = joblib.load("models/random_forest_model.pkl")
+scaler = joblib.load("models/scaler.pkl")
+cat_encoder = joblib.load("models/category_feature_encoder.pkl")
+tfidf_vectorizer = joblib.load("models/tfidf_vectorizer.pkl")
+
+# Reference data for drift detection
+reference_data = pd.read_csv("data/sample_data.csv")
 
 app = FastAPI(title="DataFlow AI")
 
-# Utility function for preprocessing
-def preprocess(df: pd.DataFrame):
-    # Data Cleaning
-    df.fillna(method='ffill', inplace=True)
-    
-    # Feature Engineering
-    if 'date' in df.columns:
-        df['day'] = pd.to_datetime(df['date']).dt.day
-        df['month'] = pd.to_datetime(df['date']).dt.month
-        df['year'] = pd.to_datetime(df['date']).dt.year
-
-    # Scaling
-    num_features = ['numeric_feature1', 'numeric_feature2', 'day', 'month']
-    df[num_features] = scaler.transform(df[num_features])
-
-    # Encoding
-    cat_features = ['category_feature']
-    for col in cat_features:
-        df[col] = cat_encoder.transform(df[col])
-
-    # Text features
-    text_features = ['text_feature']
-    for col in text_features:
-        X_text = tfidf_vectorizer.transform(df[col]).toarray()
-        tfidf_df = pd.DataFrame(X_text, columns=[f"{col}_tfidf_{i}" for i in range(X_text.shape[1])])
-        df = pd.concat([df.drop(columns=[col]), tfidf_df], axis=1)
-
-    return df
-
-# API endpoint
+#construction endpoint 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    content = await file.read() #Reading the file 
+    content = await file.read()# Read the file 
     df = pd.read_csv(StringIO(content.decode('utf-8')))
-    
-    processed_df = preprocess(df)
+
+    # Log request
+    log_request(file.filename, len(df))
+
+    # Preprocess
+    processed_df = preprocess(df, scaler, cat_encoder, tfidf_vectorizer)
+
+    # Predict
     predictions = model.predict(processed_df)
-    
-    return {"predictions": predictions.tolist()}
+    log_prediction(predictions.tolist())
+
+    # Drift detection
+    drift_detected = detect_drift(reference_data, df)
+    if drift_detected:
+        logging.warning("Data drift detected!")
+        # Send email alert
+        send_email_alert(
+            subject=" Data Drift Detected in DataFlow AI",
+            body=f"Drift detected in uploaded file: {file.filename}",
+            to_email="Enter your email address here"
+        )
+
+    return {
+        "predictions": predictions.tolist(),
+        "drift_detected": drift_detected
+    }
