@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Load Data 
-df = pd.read_csv("data/sample_data.csv")  # 
+df = pd.read_csv("data/sample_data.csv")  #virtual data 
 print("Original Data:\n", df.head())
 
 #  Data Cleaning 
@@ -63,5 +63,6 @@ joblib.dump(scaler, "scaler.pkl")
 for col in cat_features:
     joblib.dump(le, f"{col}_encoder.pkl")
 joblib.dump(tfidf, "tfidf_vectorizer.pkl")
+joblib.dumb(model,"random_forest_model.pkl") 
 
 print("Pipeline Complete. Ready for Production!")
